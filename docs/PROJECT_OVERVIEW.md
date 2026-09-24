@@ -54,7 +54,7 @@ Text layer của PDF thường không giữ semantic column. Ví dụ mắt ngư
 1 10mm GIB Standard board 2400x1200 48 sheet $24.90 $1,195.20
 ```
 
-Nhưng parser nhận một dòng phẳng có nhiều số:
+Với những layout chưa có tọa độ hoặc không nhận diện được cột, parser vẫn có thể nhận một dòng phẳng có nhiều số:
 
 - `1`: số thứ tự.
 - `10mm`, `2400x1200`: kích thước.
@@ -63,9 +63,9 @@ Nhưng parser nhận một dòng phẳng có nhiều số:
 
 Parser hiện tại cố tình refusal khi có nhiều quantity candidate để tránh chọn nhầm. Vì vậy unit `sheet` có thể nhìn thấy nhưng cả dòng vẫn không được lưu.
 
-Đây là vấn đề mất cấu trúc cột khi extract text, không nhất thiết là PDF bị lỗi.
+Đây là vấn đề mất hoặc không xác định được cấu trúc cột khi extract text, không nhất thiết là PDF bị lỗi.
 
-Các dòng đơn giản như `Concrete blocks 24 each` được chấp nhận. Các dòng có số đứng ngay trước unit có thể được cải thiện bằng parser theo vị trí cột, nhưng phải giữ refusal cho các dòng thật sự mơ hồ như `4 25kg $68 /bag`.
+Các dòng đơn giản như `Concrete blocks 24 each` được chấp nhận. Các dòng có số đứng ngay trước unit và có tọa độ rõ ràng, như `48 sheet`, được đọc theo vị trí X/Y. Các dòng thật sự mơ hồ như `4 25kg $68 /bag` vẫn bị refusal.
 
 ## 4. Guardrails chống bịa số
 
@@ -175,8 +175,8 @@ Không chạy `pnpm build` đồng thời với `pnpm dev`, vì hai tiến trìn
 
 ## 10. Hướng cải thiện tiếp theo
 
-1. Dùng vị trí X/Y của PDF.js để nhóm text theo column thay vì chỉ parse dòng phẳng.
-2. Nhận diện quantity đứng ngay trước unit trong table row, nhưng vẫn refusal khi có nhiều candidate ngang nhau.
-3. Hiển thị source bounding box hoặc link tới page preview để reviewer đối chiếu nhanh.
+1. Mở rộng nhận diện column theo nhiều layout và header khác nhau.
+2. Hiển thị source bounding box hoặc link tới page preview để reviewer đối chiếu nhanh.
+3. Thêm bộ evaluation đo precision/recall và refusal rate trên nhiều loại tài liệu.
 4. Thêm auth/tenant isolation trước khi dùng với dữ liệu customer thật.
 5. Thêm rate limit và quota tracking cho Gemini.

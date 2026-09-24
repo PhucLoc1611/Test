@@ -42,4 +42,11 @@ export type ProcessingMode = ExtractionResult["processingMode"];
 export type PdfPage = {
   page: number;
   text: string;
+  textItems?: PdfTextItem[];
+};
+
+export type PdfTextItem = {
+  text: string;
+  x: number;
+  y: number;
 };

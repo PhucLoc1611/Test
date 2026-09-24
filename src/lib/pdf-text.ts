@@ -1,4 +1,4 @@
-import type { PdfPage, Refusal } from "@/src/domain/extraction";
+import type { PdfPage, PdfTextItem, Refusal } from "@/src/domain/extraction";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -42,22 +42,35 @@ export async function extractTextByPage(buffer: Buffer): Promise<PdfTextResult> 
     try {
       const page = await document.getPage(pageNumber);
       const content = await page.getTextContent();
-      const lines = new Map<number, string[]>();
+      const lines = new Map<number, PdfTextItem[]>();
       for (const item of content.items) {
         if (!("str" in item) || !item.str.trim()) continue;
-        const y = "transform" in item ? Math.round(item.transform[5]) : 0;
+        const transform = "transform" in item ? item.transform : undefined;
+        const x = transform?.[4] ?? 0;
+        const y = Math.round(transform?.[5] ?? 0);
         const current = lines.get(y) ?? [];
-        current.push(item.str.trim());
+        current.push({ text: item.str.trim(), x, y });
         lines.set(y, current);
       }
 
       const text = [...lines.entries()]
         .sort(([left], [right]) => right - left)
-        .map(([, values]) => values.join(" ").replace(/\s+/g, " ").trim())
+        .map(([, values]) => values
+          .sort((left, right) => left.x - right.x)
+          .map((value) => value.text)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim())
         .filter(Boolean)
         .join("\n");
 
-      if (text) pages.push({ page: pageNumber, text });
+      if (text) {
+        pages.push({
+          page: pageNumber,
+          text,
+          textItems: [...lines.values()].flatMap((values) => values),
+        });
+      }
       else {
         refusals.push({
           page: pageNumber,

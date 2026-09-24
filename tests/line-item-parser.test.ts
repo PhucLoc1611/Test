@@ -55,4 +55,23 @@ describe("parsePage", () => {
       expect(item.evidence.sourceText).toContain(String(item.quantity));
     }
   });
+
+  it("uses x/y coordinates to select quantity and unit from a table row", () => {
+    const result = parsePage({
+      page: 1,
+      text: "1 GIB board 2400x1200 48 sheet $24.90 $1,195.20",
+      textItems: [
+        { text: "1", x: 10, y: 100 },
+        { text: "GIB board 2400x1200", x: 30, y: 100 },
+        { text: "48", x: 300, y: 100 },
+        { text: "sheet", x: 340, y: 100 },
+        { text: "$24.90", x: 400, y: 100 },
+        { text: "$1,195.20", x: 470, y: 100 },
+      ],
+    });
+
+    expect(result.items[0]).toMatchObject({ description: "GIB board 2400x1200", quantity: 48, unit: "sheet" });
+    expect(result.items[0]?.evidence.sourceText).toContain("48 sheet");
+    expect(result.refusals).toHaveLength(0);
+  });
 });
