@@ -6,6 +6,7 @@ The hardest decision was deciding when not to extract a number. A parser that al
 
 ## Where am I not confident?
 
+The main limitation is PDF layout parsing. The parser relies on PDF.js X/Y coordinates to group text into rows and order content by position. This can still fail when PDFs contain rotated text, missing coordinates, irregular columns, or inconsistent spacing.
 The deterministic parser now uses PDF.js text coordinates as the primary path: it groups nearby Y baselines, orders tokens by X, and identifies a quantity beside a recognised unit in a table row. It only uses flattened text when PDF.js provides no individual text items at all; coordinate-based pages no longer fall back to guessing from a flattened line. Some layouts may therefore still produce explicit refusals even when a person can infer the intended quantity visually.
 I am also not claiming that AI can never choose the wrong number. The backend validates AI output, requires the quantity to occur in the quoted evidence, and marks every AI result for human review, but an AI model could still select the wrong number when several real numbers are visible on the same page.
 
