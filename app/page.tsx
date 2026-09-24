@@ -125,7 +125,7 @@ export default function Home() {
         <form className="upload-card" onSubmit={(event) => void onSubmit(event, "text")}>
           <label htmlFor="pdf-file">PDF document</label>
           <input id="pdf-file" type="file" accept="application/pdf,.pdf" onChange={onFileChange} />
-          <p className="hint">The default route reads text PDFs directly and automatically sends scanned or hybrid pages to the stricter AI reader.</p>
+          <p className="hint">This route uses the deterministic text reader only. Scanned or unreadable PDFs return a clear message with an option to try Gemini AI.</p>
           <button type="submit" disabled={loading}>
             {loading ? "Reading document…" : "Smart extract quantities"}
           </button>
@@ -156,6 +156,16 @@ export default function Home() {
           <section className="notice error" aria-live="polite">
             <strong>{error.message}</strong>
             <span>{error.details ?? `Reference: ${error.code}`}</span>
+            {error.code === "NO_TEXT_LAYER" && file && (
+              <button
+                type="button"
+                className="image-button"
+                disabled={loading}
+                onClick={() => void onSubmit({ preventDefault() {} }, "image")}
+              >
+                Try Gemini AI on this PDF
+              </button>
+            )}
           </section>
         )}
 

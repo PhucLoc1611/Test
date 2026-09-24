@@ -62,14 +62,14 @@ export async function extractTextByPage(buffer: Buffer): Promise<PdfTextResult> 
         refusals.push({
           page: pageNumber,
           reason: "PAGE_HAS_NO_TEXT",
-          userMessage: "This page has no selectable text, so we could not safely read quantities from it.",
+          userMessage: "This page has no selectable text, so the text reader could not safely read quantities. Try Gemini AI for this PDF.",
         });
       }
     } catch {
       refusals.push({
         page: pageNumber,
         reason: "PAGE_TEXT_EXTRACTION_FAILED",
-        userMessage: "We could not read text from this page, so quantities on it were not extracted.",
+        userMessage: "The text reader could not read this page, so quantities on it were not extracted. Try Gemini AI for this PDF.",
       });
     }
   }

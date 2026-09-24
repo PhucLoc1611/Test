@@ -33,6 +33,14 @@ export function toPublicError(error: unknown): {
     };
   }
 
+  if (error instanceof Error && error.message === "NO_TEXT_LAYER") {
+    return {
+      code: "NO_TEXT_LAYER",
+      message: "The text reader could not find selectable text in this PDF. Try Gemini AI for scanned or image-based documents.",
+      status: 422,
+    };
+  }
+
   if (error instanceof Error && /column .* does not exist/i.test(error.message)) {
     return {
       code: "DATABASE_SCHEMA_OUTDATED",

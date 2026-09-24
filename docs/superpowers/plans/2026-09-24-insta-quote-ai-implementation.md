@@ -4,7 +4,7 @@
 
 **Goal:** Build a small Next.js application that extracts auditable line items from uploaded PDFs, persists documents/results in Supabase, and shows both successful extraction and human-readable refusals in the browser.
 
-**Architecture:** The server accepts any PDF, first classifies its text layer, uses deterministic parsing for fully text-based files, and routes scanned or hybrid files to a stricter Gemini document reader. Both paths validate that every emitted quantity has page and exact evidence text before persisting the document, line items, and refusals. The React page renders the typed result without hiding refusals behind generic errors.
+**Architecture:** The server exposes separate deterministic and Gemini routes. The Smart route uses deterministic parsing only and returns a clear `NO_TEXT_LAYER` error with an AI recommendation when selectable text is unavailable. The explicit Gemini route handles scanned, hybrid, or difficult PDFs. Both paths validate that every emitted quantity has page and exact evidence text before persisting the document, line items, and refusals.
 
 **Tech Stack:** Next.js App Router, TypeScript, React, pdfjs-dist, @supabase/supabase-js, Zod, Vitest, Testing Library, CSS, pnpm.
 
@@ -15,7 +15,7 @@
 - A refusal for one page or row must not remove valid results from other pages.
 - The current Supabase schema has no user/tenant column; this take-home uses the publishable key with explicitly marked demo-only public policies.
 - Do not add OCR or LLM extraction inside the deterministic parser.
-- Gemini is an explicit AI document path and automatic fallback for scanned or hybrid PDFs; it must never replace evidence validation or refusal handling.
+- Gemini is an explicit AI document path; it must never replace evidence validation or refusal handling.
 - Do not introduce or require a service-role key for this take-home; keep Supabase calls in the server route.
 - The six sample PDFs were used as local manual acceptance fixtures but are intentionally not committed to the repository.
 

@@ -6,8 +6,6 @@ import { getFileHash } from "@/src/lib/file-hash";
 import { createSupabaseClient } from "@/src/lib/supabase-client";
 import { getDocumentResult } from "@/src/lib/document-service";
 import { extractTextByPage, NoTextLayerError } from "@/src/lib/pdf-text";
-import { chooseExtractionMode } from "@/src/lib/extraction-mode";
-import { processImageDocument } from "@/src/lib/image-extraction-service";
 
 export const runtime = "nodejs";
 
@@ -37,18 +35,18 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await uploaded.arrayBuffer());
     assertPdfBuffer(buffer);
     const fileHash = getFileHash(buffer);
-    let mode: "deterministic" | "ai";
-    let documentType: "text_pdf" | "scanned_pdf" | "hybrid_pdf";
     try {
-      const inspection = await extractTextByPage(buffer);
-      const hasPagesWithoutText = inspection.refusals.length > 0;
-      mode = chooseExtractionMode({ hasTextPages: inspection.pages.length > 0, hasPagesWithoutText });
-      documentType = hasPagesWithoutText ? "hybrid_pdf" : "text_pdf";
+      await extractTextByPage(buffer);
     } catch (error) {
       if (!(error instanceof NoTextLayerError)) throw error;
-      mode = "ai";
-      documentType = "scanned_pdf";
+      throw new PublicError(
+        "NO_TEXT_LAYER",
+        "The text reader could not find selectable text in this PDF. Try Gemini AI for scanned or image-based documents.",
+        422,
+      );
     }
+
+    const mode = "deterministic" as const;
 
     const supabase = createSupabaseClient();
     const existing = await supabase
@@ -74,12 +72,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const result = mode === "ai"
-      ? await processImageDocument(
-          { fileName: uploaded.name, buffer, fileHash, processingMode: "ai", documentType },
-          { supabase },
-        )
-      : await processDocument({ fileName: uploaded.name, buffer, fileHash }, { supabase });
+    const result = await processDocument({ fileName: uploaded.name, buffer, fileHash }, { supabase });
 
     return NextResponse.json({ data: result, meta: { mode, reused: false } }, { status: 200 });
   } catch (error) {

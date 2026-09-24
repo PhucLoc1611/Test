@@ -27,11 +27,13 @@ Luồng:
 
 ### Gemini AI document extraction
 
-Được dùng khi:
+Được dùng khi người dùng chủ động bấm nút Gemini AI. Smart extract không tự chuyển sang AI; nếu deterministic reader không thấy text layer, nó trả lỗi có hướng dẫn thử Gemini.
+
+AI cũng phù hợp khi:
 
 - PDF là scan/image-only.
 - PDF hybrid có page có text và page không có text.
-- Người dùng chủ động bấm nút Gemini AI cho bất kỳ PDF nào.
+- Người dùng muốn kiểm tra mọi PDF bằng AI.
 
 Gemini nhận toàn bộ PDF và phải trả JSON có:
 
