@@ -96,18 +96,51 @@ describe("parsePage", () => {
   it("does not use flattened text to guess a coordinate row", () => {
     const result = parsePage({
       page: 1,
-      text: "GIB board 2400x1200 48 sheet $24.90 $1,195.20",
+      text: "GIB board 2400x1200 48 12",
       textItems: [
         { text: "GIB board 2400x1200", x: 30, y: 100 },
         { text: "48", x: 300, y: 100 },
-        { text: "sheet", x: 340, y: 100 },
-        { text: "$24.90", x: 400, y: 100 },
-        { text: "$1,195.20", x: 470, y: 100 },
-        { text: "each", x: 520, y: 100 },
+        { text: "12", x: 400, y: 100 },
       ],
     });
 
     expect(result.items).toHaveLength(0);
-    expect(result.refusals[0]?.reason).toBe("AMBIGUOUS_COORDINATE_UNITS");
+    expect(result.refusals[0]?.reason).toBe("AMBIGUOUS_COORDINATE_QUANTITY");
+  });
+
+  it("ignores a unit word in the description and uses the unit after quantity", () => {
+    const result = parsePage({
+      page: 1,
+      text: "5 Plasterboard screws 32mm (box of 1000) 8 box $42.00 $336.00",
+      textItems: [
+        { text: "5", x: 10, y: 100 },
+        { text: "Plasterboard screws 32mm (box of 1000)", x: 30, y: 100 },
+        { text: "8", x: 300, y: 100 },
+        { text: "box", x: 340, y: 100 },
+        { text: "$42.00", x: 400, y: 100 },
+        { text: "$336.00", x: 470, y: 100 },
+      ],
+    });
+
+    expect(result.items[0]).toMatchObject({ description: "Plasterboard screws 32mm (box of 1000)", quantity: 8, unit: "box" });
+    expect(result.refusals).toHaveLength(0);
+  });
+
+  it("handles a description that ends with the same unit as the unit column", () => {
+    const result = parsePage({
+      page: 1,
+      text: "4 Wet area membrane roll 2 roll $189.00 $378.00",
+      textItems: [
+        { text: "4", x: 10, y: 100 },
+        { text: "Wet area membrane roll", x: 30, y: 100 },
+        { text: "2", x: 300, y: 100 },
+        { text: "roll", x: 340, y: 100 },
+        { text: "$189.00", x: 400, y: 100 },
+        { text: "$378.00", x: 470, y: 100 },
+      ],
+    });
+
+    expect(result.items[0]).toMatchObject({ description: "Wet area membrane roll", quantity: 2, unit: "roll" });
+    expect(result.refusals).toHaveLength(0);
   });
 });

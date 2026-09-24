@@ -65,7 +65,7 @@ Parser hiện tại cố tình refusal khi có nhiều quantity candidate để 
 
 Đây là vấn đề mất hoặc không xác định được cấu trúc cột khi extract text, không nhất thiết là PDF bị lỗi. Khi PDF.js trả về tọa độ, parser không quay lại flattened-text nếu dòng có nhiều unit hoặc nhiều quantity; nó refusal theo dữ liệu X/Y để tránh đoán.
 
-Các dòng đơn giản như `Concrete blocks 24 each` được chấp nhận. Các dòng có số đứng ngay trước unit và có tọa độ rõ ràng, như `48 sheet`, được đọc theo vị trí X/Y. Các dòng thật sự mơ hồ như `4 25kg $68 /bag` vẫn bị refusal.
+Các dòng đơn giản như `Concrete blocks 24 each` được chấp nhận. Các dòng có số đứng ngay trước unit và có tọa độ rõ ràng, như `48 sheet`, được đọc theo vị trí X/Y. Nếu mô tả cũng chứa từ unit, ví dụ `Wet area membrane roll | 2 | roll`, parser ưu tiên unit nằm sau quantity. Các dòng thật sự mơ hồ như `4 25kg $68 /bag` vẫn bị refusal.
 
 ## 4. Guardrails chống bịa số
 

@@ -27,6 +27,10 @@ const UNIT_WORDS = new Set([
   "bags",
   "pallet",
   "pallets",
+  "roll",
+  "rolls",
+  "bundle",
+  "bundles",
   "length",
   "lengths",
   "kg",
@@ -148,18 +152,20 @@ function parseCoordinateRow(page: PdfPage, row: PdfTextItem[]): { item?: LineIte
   const sourceText = [...row].sort((left, right) => left.x - right.x).map((item) => item.text).join(" ").replace(/\s+/g, " ").trim();
   if (!sourceText || HEADER_WORDS.test(sourceText)) return {};
 
+  const numericTokens = ordered.filter((token) => /^\d+(?:[.,]\d+)?$/.test(token.raw));
   const unitTokens = ordered.filter((token) => UNIT_WORDS.has(token.raw.toLowerCase().replace(/[,:;]+$/, "")));
-  if (unitTokens.length > 1) {
-    return refusalResult(
-      page,
-      sourceText,
-      "AMBIGUOUS_COORDINATE_UNITS",
-      "This table row contains multiple possible units, so we did not guess which quantity to use.",
-    );
-  }
+  const quantityUnitCandidates = unitTokens.flatMap((unitToken) =>
+    numericTokens
+      .filter((quantityToken) => quantityToken.x < unitToken.x)
+      .map((quantityToken) => ({
+        quantityToken,
+        unitToken,
+        distance: unitToken.x - quantityToken.x,
+        descriptionTokenCount: ordered.filter((token) => token.x < quantityToken.x && !/^\d+(?:[.,]\d+)?$/.test(token.raw)).length,
+      })),
+  ).sort((left, right) => right.descriptionTokenCount - left.descriptionTokenCount || left.distance - right.distance);
 
-  if (unitTokens.length === 0) {
-    const numericTokens = ordered.filter((token) => /^\d+(?:[.,]\d+)?$/.test(token.raw));
+  if (quantityUnitCandidates.length === 0) {
     if (numericTokens.length !== 1) {
       return refusalResult(
         page,
@@ -185,14 +191,7 @@ function parseCoordinateRow(page: PdfPage, row: PdfTextItem[]): { item?: LineIte
     };
   }
 
-  const unitToken = unitTokens[0];
-  const quantityCandidates = ordered.filter((token) =>
-    token.x < unitToken.x && /^\d+(?:[.,]\d+)?$/.test(token.raw),
-  );
-  const quantity = quantityCandidates.at(-1);
-  if (!quantity) {
-    return refusalResult(page, sourceText, "QUANTITY_NOT_FOUND", "We found a unit but no clearly preceding quantity, so we left this line out.");
-  }
+  const { quantityToken: quantity, unitToken } = quantityUnitCandidates[0];
 
   const descriptionTokens = ordered
     .filter((token) => token.x < quantity.x)
