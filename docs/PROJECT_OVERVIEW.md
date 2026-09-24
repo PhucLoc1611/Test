@@ -126,6 +126,7 @@ File được hash bằng SHA-256.
 - Cùng file + cùng processing mode đã hoàn tất → trả kết quả cũ, không đọc lại.
 - Document có status `failed` → không reuse; lần upload tiếp theo được retry.
 - Deterministic và AI của cùng một file có thể tồn tại riêng vì có processing mode khác nhau.
+- Nút `Read again` gửi `force=true`, bỏ qua cache và thay thế line items/refusals trong cùng `document_id`; người dùng cần chọn lại file PDF vì server không lưu binary upload.
 
 ## 7. Supabase schema
 

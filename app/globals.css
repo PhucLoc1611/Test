@@ -42,6 +42,8 @@ button:disabled { cursor: wait; opacity: .6; }
 .reused-notice { margin: 0; color: var(--accent); font-size: 14px; }
 .results { display: grid; gap: 24px; }
 .result-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.result-actions { display: grid; justify-items: end; gap: 5px; }
+.result-actions small { color: var(--muted); font-size: 12px; text-align: right; }
 .method-note { margin: 10px 0 18px; color: var(--muted); font-size: 14px; }
 .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .summary-card { display: grid; gap: 8px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fbfdfb; }

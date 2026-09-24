@@ -22,6 +22,7 @@ export default function Home() {
   const [error, setError] = useState<ApiError | null>(null);
   const [loading, setLoading] = useState(false);
   const [reused, setReused] = useState(false);
+  const [reprocessed, setReprocessed] = useState(false);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -74,9 +75,10 @@ export default function Home() {
     setResult(null);
     setError(null);
     setReused(false);
+    setReprocessed(false);
   }
 
-  async function onSubmit(event: { preventDefault: () => void }, mode: "text" | "image") {
+  async function onSubmit(event: { preventDefault: () => void }, mode: "text" | "image", force = false) {
     event.preventDefault();
     if (!file) {
       setError({ code: "FILE_REQUIRED", message: "Choose a PDF file first." });
@@ -87,10 +89,12 @@ export default function Home() {
     setResult(null);
     setError(null);
     setSelectedDocumentId(null);
+    setReprocessed(false);
 
     try {
       const formData = new FormData();
       formData.append("file", file);
+      if (force) formData.append("force", "true");
       const endpoint = mode === "image" ? "/api/extract/ai" : "/api/extract";
       const response = await fetch(endpoint, { method: "POST", body: formData });
       const body = (await response.json()) as { data?: ExtractionResult; meta?: { reused?: boolean; mode?: string }; error?: ApiError };
@@ -102,6 +106,7 @@ export default function Home() {
 
       setResult(body.data);
       setReused(body.meta?.reused === true);
+      setReprocessed(force);
       setSelectedDocumentId(body.data.documentId);
       await loadDocuments();
     } catch {
@@ -169,14 +174,32 @@ export default function Home() {
           </section>
         )}
 
-        {result && <Results result={result} />}
+        {result && (
+          <Results
+            result={result}
+            canReprocess={Boolean(file)}
+            reprocessing={loading}
+            onReprocess={() => void onSubmit({ preventDefault() {} }, result.processingMode === "ai" ? "image" : "text", true)}
+          />
+        )}
         {result && reused && <p className="reused-notice">This PDF was already processed. Showing the saved result without reading it again.</p>}
+        {result && reprocessed && <p className="reused-notice">This document was read again and its saved result was replaced.</p>}
       </section>
     </main>
   );
 }
 
-function Results({ result }: { result: ExtractionResult }) {
+function Results({
+  result,
+  canReprocess,
+  reprocessing,
+  onReprocess,
+}: {
+  result: ExtractionResult;
+  canReprocess: boolean;
+  reprocessing: boolean;
+  onReprocess: () => void;
+}) {
   const needsReview = requiresHumanReview({ processingMode: result.processingMode, refusalCount: result.refusals.length });
   return (
     <section className="results" aria-live="polite">
@@ -184,6 +207,12 @@ function Results({ result }: { result: ExtractionResult }) {
         <div>
           <p className="eyebrow">Extraction complete</p>
           <h2>{result.fileName}</h2>
+        </div>
+        <div className="result-actions">
+          <button type="button" className="secondary-button" onClick={onReprocess} disabled={!canReprocess || reprocessing}>
+            {reprocessing ? "Reading againâ€¦" : "Read again"}
+          </button>
+          {!canReprocess && <small>Select this PDF again above to read it again.</small>}
         </div>
         <span className={`status ${needsReview ? "status-warning" : "status-ok"}`}>
           {result.processingMode === "ai" ? "Needs review — AI result" : result.refusals.length ? "Completed with refusals" : "Completed"}

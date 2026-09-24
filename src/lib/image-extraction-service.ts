@@ -12,6 +12,7 @@ type ImageProcessInput = {
   fileName: string;
   buffer: Buffer;
   fileHash: string;
+  documentId?: string;
   processingMode?: "image" | "ai";
   documentType?: "text_pdf" | "scanned_pdf" | "hybrid_pdf";
 };
@@ -36,22 +37,38 @@ export async function processImageDocument(
   const processingMode = input.processingMode ?? "image";
   const documentType = input.documentType ?? "scanned_pdf";
   const pagesProcessed = await getPdfPageCount(input.buffer);
-  const created = await supabase
-    .from("documents")
-    .insert({
-      file_name: input.fileName,
-      file_hash: input.fileHash,
-      processing_mode: processingMode,
-      document_type: documentType,
-      status: "processing",
-      pages_processed: 0,
-    })
-    .select("id, file_name")
-    .single();
-  databaseError(created.error, "create");
-  if (!created.data) throw new PublicError("DATABASE_ERROR", "Could not create the AI extraction result.", 500);
+  let documentId = input.documentId;
+  if (documentId) {
+    const reset = await supabase
+      .from("documents")
+      .update({
+        file_name: input.fileName,
+        file_hash: input.fileHash,
+        processing_mode: processingMode,
+        document_type: documentType,
+        status: "processing",
+        pages_processed: 0,
+      })
+      .eq("id", documentId);
+    databaseError(reset.error, "reset");
+  } else {
+    const created = await supabase
+      .from("documents")
+      .insert({
+        file_name: input.fileName,
+        file_hash: input.fileHash,
+        processing_mode: processingMode,
+        document_type: documentType,
+        status: "processing",
+        pages_processed: 0,
+      })
+      .select("id, file_name")
+      .single();
+    databaseError(created.error, "create");
+    if (!created.data) throw new PublicError("DATABASE_ERROR", "Could not create the AI extraction result.", 500);
 
-  const documentId = created.data.id as string;
+    documentId = created.data.id as string;
+  }
   let extracted: Awaited<ReturnType<typeof extract>>;
   try {
     extracted = await extract(input.buffer);

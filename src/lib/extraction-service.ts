@@ -14,6 +14,7 @@ type ProcessInput = {
   fileName: string;
   buffer: Buffer;
   fileHash: string;
+  documentId?: string;
 };
 
 type ProcessDependencies = {
@@ -34,24 +35,39 @@ export async function processDocument(
   const supabase = dependencies.supabase ?? createSupabaseClient();
   const extract = dependencies.extract ?? extractTextByPage;
 
-  const created = await supabase
-    .from("documents")
-    .insert({
-      file_name: input.fileName,
-      file_hash: input.fileHash,
-      document_type: "text_pdf",
-      status: "processing",
-      pages_processed: 0,
-    })
-    .select("id, file_name")
-    .single();
-  databaseError(created.error, "create");
+  let documentId = input.documentId;
+  if (documentId) {
+    const reset = await supabase
+      .from("documents")
+      .update({
+        file_name: input.fileName,
+        file_hash: input.fileHash,
+        document_type: "text_pdf",
+        status: "processing",
+        pages_processed: 0,
+      })
+      .eq("id", documentId);
+    databaseError(reset.error, "reset");
+  } else {
+    const created = await supabase
+      .from("documents")
+      .insert({
+        file_name: input.fileName,
+        file_hash: input.fileHash,
+        document_type: "text_pdf",
+        status: "processing",
+        pages_processed: 0,
+      })
+      .select("id, file_name")
+      .single();
+    databaseError(created.error, "create");
 
-  if (!created.data) {
-    throw new PublicError("DATABASE_ERROR", "Could not create the extraction result.", 500);
+    if (!created.data) {
+      throw new PublicError("DATABASE_ERROR", "Could not create the extraction result.", 500);
+    }
+
+    documentId = created.data.id as string;
   }
-
-  const documentId = created.data.id as string;
   let pagesProcessed = 0;
   let items: ExtractionResult["items"] = [];
   let refusals: Refusal[] = [];
