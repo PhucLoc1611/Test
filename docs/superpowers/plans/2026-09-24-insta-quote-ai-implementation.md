@@ -17,7 +17,7 @@
 - Do not add OCR or LLM extraction inside the deterministic parser.
 - Gemini is an explicit AI document path and automatic fallback for scanned or hybrid PDFs; it must never replace evidence validation or refusal handling.
 - Do not introduce or require a service-role key for this take-home; keep Supabase calls in the server route.
-- The six sample PDFs in the pdf/ directory are the manual acceptance fixtures.
+- The six sample PDFs were used as local manual acceptance fixtures but are intentionally not committed to the repository.
 
 ---
 
@@ -219,14 +219,14 @@ The API must return { data: ExtractionResult } for success and { error: { code, 
 
 **Acceptance:** A non-technical reviewer can tell which values were extracted, where they came from, and why another value was refused.
 
-## Task 9: Verify against the six supplied PDFs and document limitations
+## Task 9: Verify against supplied PDFs and document limitations
 
 **Files:** README.md, optionally small text fixtures under tests/fixtures/.
 
 - [ ] Document setup, environment variables, Supabase schema execution, and local commands.
 - [ ] Explain when the deterministic parser is used, when AI is used, and that both paths preserve evidence/refusals.
 - [ ] Document the exact refusal behavior for scan-only PDFs, ambiguity, contradiction, and missing evidence.
-- [ ] Test all six PDFs in pdf/ manually through the UI.
+- [ ] Test all six supplied PDFs manually through the UI when available locally; do not commit customer/sample documents.
 - [ ] Record observed limitations honestly; do not claim support for layouts not verified.
 - [ ] Run pnpm test, pnpm typecheck, pnpm lint, and pnpm build.
 
