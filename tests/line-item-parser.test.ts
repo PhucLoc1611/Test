@@ -74,4 +74,40 @@ describe("parsePage", () => {
     expect(result.items[0]?.evidence.sourceText).toContain("48 sheet");
     expect(result.refusals).toHaveLength(0);
   });
+
+  it("groups nearby baselines into one coordinate row", () => {
+    const result = parsePage({
+      page: 1,
+      text: "1 GIB board 2400x1200 48 sheet $24.90 $1,195.20",
+      textItems: [
+        { text: "1", x: 10, y: 100 },
+        { text: "GIB board 2400x1200", x: 30, y: 101 },
+        { text: "48", x: 300, y: 100 },
+        { text: "sheet", x: 340, y: 101 },
+        { text: "$24.90", x: 400, y: 100 },
+        { text: "$1,195.20", x: 470, y: 101 },
+      ],
+    });
+
+    expect(result.items[0]).toMatchObject({ description: "GIB board 2400x1200", quantity: 48, unit: "sheet" });
+    expect(result.refusals).toHaveLength(0);
+  });
+
+  it("does not use flattened text to guess a coordinate row", () => {
+    const result = parsePage({
+      page: 1,
+      text: "GIB board 2400x1200 48 sheet $24.90 $1,195.20",
+      textItems: [
+        { text: "GIB board 2400x1200", x: 30, y: 100 },
+        { text: "48", x: 300, y: 100 },
+        { text: "sheet", x: 340, y: 100 },
+        { text: "$24.90", x: 400, y: 100 },
+        { text: "$1,195.20", x: 470, y: 100 },
+        { text: "each", x: 520, y: 100 },
+      ],
+    });
+
+    expect(result.items).toHaveLength(0);
+    expect(result.refusals[0]?.reason).toBe("AMBIGUOUS_COORDINATE_UNITS");
+  });
 });

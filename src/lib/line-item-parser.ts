@@ -149,7 +149,41 @@ function parseCoordinateRow(page: PdfPage, row: PdfTextItem[]): { item?: LineIte
   if (!sourceText || HEADER_WORDS.test(sourceText)) return {};
 
   const unitTokens = ordered.filter((token) => UNIT_WORDS.has(token.raw.toLowerCase().replace(/[,:;]+$/, "")));
-  if (unitTokens.length !== 1) return parseLine(page, sourceText);
+  if (unitTokens.length > 1) {
+    return refusalResult(
+      page,
+      sourceText,
+      "AMBIGUOUS_COORDINATE_UNITS",
+      "This table row contains multiple possible units, so we did not guess which quantity to use.",
+    );
+  }
+
+  if (unitTokens.length === 0) {
+    const numericTokens = ordered.filter((token) => /^\d+(?:[.,]\d+)?$/.test(token.raw));
+    if (numericTokens.length !== 1) {
+      return refusalResult(
+        page,
+        sourceText,
+        "AMBIGUOUS_COORDINATE_QUANTITY",
+        "This table row contains multiple possible quantities and no single unit to identify the right one.",
+      );
+    }
+
+    const quantity = numericTokens[0];
+    const descriptionTokens = ordered.filter((token) => token.x < quantity.x).map((token) => token.raw);
+    const description = descriptionTokens.join(" ").replace(/^[0-9]+\s+/, "").replace(/[|,:;\-]+$/, "").trim();
+    if (!description) {
+      return refusalResult(page, sourceText, "DESCRIPTION_NOT_FOUND", "We found a quantity but could not identify its description, so we left this line out.");
+    }
+
+    return {
+      item: {
+        description,
+        quantity: quantity.value,
+        evidence: { page: page.page, sourceText, sourceType: "text" },
+      },
+    };
+  }
 
   const unitToken = unitTokens[0];
   const quantityCandidates = ordered.filter((token) =>
@@ -188,13 +222,18 @@ export function parsePage(page: PdfPage): { items: LineItem[]; refusals: Refusal
   const refusals: Refusal[] = [];
 
   if (page.textItems?.length) {
-    const rows = new Map<number, PdfTextItem[]>();
-    for (const textItem of page.textItems) {
-      const row = rows.get(textItem.y) ?? [];
-      row.push(textItem);
-      rows.set(textItem.y, row);
+    const rows: PdfTextItem[][] = [];
+    for (const textItem of [...page.textItems].sort((left, right) => left.y - right.y || left.x - right.x)) {
+      const current = rows.at(-1);
+      const currentY = current?.reduce((sum, item) => sum + item.y, 0) ?? 0;
+      const averageY = current ? currentY / current.length : 0;
+      if (current && Math.abs(textItem.y - averageY) <= 2) {
+        current.push(textItem);
+      } else {
+        rows.push([textItem]);
+      }
     }
-    for (const row of rows.values()) {
+    for (const row of rows) {
       const parsed = parseCoordinateRow(page, row);
       if (parsed.item) items.push(parsed.item);
       if (parsed.refusal) refusals.push(parsed.refusal);
